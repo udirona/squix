@@ -9,7 +9,7 @@ import (
 	"github.com/eduardofuncao/squix/internal/styles"
 )
 
-const Version = "v0.3.0"
+const Version = "v0.4.0-beta"
 
 type App struct {
 	config *config.Config
@@ -44,6 +44,8 @@ func (a *App) Run() {
 		a.handleRemove()
 	case "query", "run":
 		a.handleRun()
+	case "shell", "repl":
+		a.handleShell()
 	case "list":
 		a.handleList()
 	case "ls":
@@ -61,13 +63,17 @@ func (a *App) Run() {
 	case "tables", "t":
 		a.handleTables()
 	case "disconnect", "clear", "unset":
-		a.handleEdit()
+		a.handleDisconnect()
 	case "config":
 		a.handleConfig()
 	case "explain":
 		a.handleExplain()
 	case "help":
 		a.handleHelp()
+	case "__complete":
+		a.handleComplete()
+	case "completion":
+		a.handleCompletion()
 	default:
 		log.Fatalf("Unknown command: %s", command)
 	}
@@ -108,6 +114,9 @@ func (a *App) printUsage() {
 	)
 	fmt.Println(
 		"  squix list queries     " + styles.Faint.Render("List saved queries"),
+	)
+	fmt.Println(
+		"  squix shell            " + styles.Faint.Render("Interactive query REPL"),
 	)
 	fmt.Println(
 		"  squix ls               " + styles.Faint.Render(

@@ -68,6 +68,11 @@ func (a *App) PrintGeneralHelp() {
 		),
 	)
 	fmt.Println(
+		"  shell       " + styles.Faint.Render(
+			"Interactive REPL for running queries (alias: repl)",
+		),
+	)
+	fmt.Println(
 		"  tables      " + styles.Faint.Render("List or query database tables"),
 	)
 	fmt.Println(
@@ -128,15 +133,16 @@ fmt.Println(
 	// Examples
 	fmt.Println(styles.Title.Render("Examples"))
 	fmt.Println(
-		"  squix init dev postgres \"postgres://user:pass@localhost:5432/dbname\"",
+		"  squix init dev \"postgres://user:pass@localhost:5432/dbname\"",
 	)
 	fmt.Println(
-		"  squix init prod sqlserver \"sqlserver://sa:password@localhost:1433?database=mydb\"",
+		"  squix init oracle \"oracle://user:pass@localhost:1521/XEPDB1\"",
 	)
 	fmt.Println("  squix switch dev")
 	fmt.Println("  squix add list_users \"SELECT * FROM users\"")
 	fmt.Println("  squix run list_users")
 	fmt.Println("  squix run \"select * from users\"")
+	fmt.Println("  squix shell")
 	fmt.Println("  squix list connections")
 	fmt.Println("  squix list queries")
 	fmt.Println("  squix edit config")
@@ -215,6 +221,9 @@ func (a *App) PrintCommandHelp() {
 		fmt.Println(
 			"  squix init staging mysql \"user:pass@tcp(127.0.0.1:3306)/dbname\"",
 		)
+		fmt.Println()
+		fmt.Println("  # DuckDB (included by default, requires CGO)")
+		fmt.Println("  squix init local duckdb /path/to/mydb.db")
 
 	case "switch", "use":
 		section("Command: switch")
@@ -283,7 +292,7 @@ func (a *App) PrintCommandHelp() {
 		)
 		fmt.Println()
 		section("Usage")
-		fmt.Println("  squix run <query-name-or-id> [--edit | -e] [--last | -l]")
+		fmt.Println("  squix run <query-name-or-id> [--edit | -e] [--last | -l] [--format | -f <fmt>]")
 		fmt.Println("  squix run                      " + styles.Faint.Render("# Opens the editor to build sql query"))
 		fmt.Println()
 		section("Description")
@@ -296,6 +305,8 @@ func (a *App) PrintCommandHelp() {
 		fmt.Println("  - With '--edit' or '-e', squix opens the query in your $EDITOR before")
 		fmt.Println("    running it and saves any changes back to the configuration.")
 		fmt.Println("  - With '--last' or '-l', runs the last used query")
+		fmt.Println("  - With '--format' or '-f', prints results to stdout instead of opening")
+		fmt.Println("    the table UI. Formats: csv, json, tsv, html, sql, markdown")
 		fmt.Println()
 		section("Interactive table view")
 		fmt.Println(
@@ -316,25 +327,51 @@ func (a *App) PrintCommandHelp() {
 		fmt.Println("  d                     " + styles.Faint.Render("Delete current row (requires WHERE clause)"))
 		fmt.Println("  e                     " + styles.Faint.Render("Open the editor to update and rerun query"))
 		fmt.Println("  s                     " + styles.Faint.Render("Save current query"))
+		fmt.Println("  /                     " + styles.Faint.Render("Search cell content"))
+		fmt.Println("  n / N                 " + styles.Faint.Render("Navigate to next/previous cell match"))
+		fmt.Println("  f                     " + styles.Faint.Render("Search column headers"))
+		fmt.Println("  ; / ,                 " + styles.Faint.Render("Navigate to next/previous column match"))
 		fmt.Println("  Esc /Ctrl+c           " + styles.Faint.Render("Quit the table view"))
-		fmt.Println()
-		fmt.Println(
-			styles.Faint.Render(
-				"Exact keys may vary depending on how the table component is wired,",
-			),
-		)
-		fmt.Println(
-			styles.Faint.Render(
-				"but the basic navigation, search/filtering, and quit commands are available.",
-			),
-		)
 		fmt.Println()
 		section("Examples")
 		fmt.Println("  squix run list_users")
 		fmt.Println("  squix run \"select * from orders\"")
 		fmt.Println("  squix run 2 --edit")
 		fmt.Println("  squix run --last")
+		fmt.Println("  squix run list_users -f json")
+		fmt.Println("  squix run \"SELECT * FROM users\" --format csv > users.csv")
 		fmt.Println("  squix query list_users")
+
+	case "shell", "repl":
+		section("Command: shell")
+		fmt.Println(
+			styles.Faint.Render(
+				"Start an interactive REPL to run queries against the current connection.",
+			),
+		)
+		fmt.Println()
+		section("Usage")
+		fmt.Println("  squix shell")
+		fmt.Println()
+		section("Description")
+		fmt.Println("  - Opens REPL to run and list queries from the current active connection")
+		fmt.Println("  - Supports inline SQL, saved queries by name/ID, and all run flags.")
+		fmt.Println("  - Multi-line input: type SQL without trailing ; to continue.")
+		fmt.Println("  - Use up/down arrows to navigate command history.")
+		fmt.Println()
+		section("Meta-commands")
+		fmt.Println("  exit, quit, \\q    Exit the REPL")
+		fmt.Println("  help, \\h          Show help")
+		fmt.Println("  list, ls, \\l      List saved queries or connections")
+		fmt.Println("  status             Show connection info")
+		fmt.Println()
+		section("Examples")
+		fmt.Println("  squix shell")
+		fmt.Println("  > select 1")
+		fmt.Println("  > my-query")
+		fmt.Println("  > my-query 123")
+		fmt.Println("  > --last")
+		fmt.Println("  > exit")
 
 	case "list":
 		section("Command: list")
@@ -616,6 +653,47 @@ func (a *App) PrintCommandHelp() {
 		fmt.Println("  squix help")
 		fmt.Println("  squix help run")
 		fmt.Println("  squix help list")
+
+	case "completion":
+		section("Command: completion")
+		fmt.Println(
+			styles.Faint.Render(
+				"Generate shell completion scripts for bash, zsh, or fish.",
+			),
+		)
+		fmt.Println()
+		section("Usage")
+		fmt.Println("  squix completion <shell>")
+		fmt.Println()
+		section("Description")
+		fmt.Println(
+			"  Outputs completion script to stdout. Completions are dynamic - they",
+		)
+		fmt.Println(
+			"  automatically include your saved queries and connections.",
+		)
+		fmt.Println()
+		section("Installation")
+		fmt.Println(
+			"  Bash (temporary):    " + styles.Faint.Render("source <(squix completion bash)"),
+		)
+		fmt.Println(
+			"  Bash (permanent):    " + styles.Faint.Render("echo 'eval \"$(squix completion bash)\"' >> ~/.bashrc"),
+		)
+		fmt.Println(
+			"  Zsh (temporary):    " + styles.Faint.Render("source <(squix completion zsh)"),
+		)
+		fmt.Println(
+			"  Zsh (permanent):    " + styles.Faint.Render("echo 'eval \"$(squix completion zsh)\"' >> ~/.zshrc"),
+		)
+		fmt.Println(
+			"  Fish:               " + styles.Faint.Render("squix completion fish > ~/.config/fish/completions/squix.fish"),
+		)
+		fmt.Println()
+		section("Examples")
+		fmt.Println("  squix completion bash")
+		fmt.Println("  squix completion zsh")
+		fmt.Println("  squix completion fish")
 
 	default:
 		fmt.Printf("%s %q\n\n", styles.Error.Render("Unknown command"), cmd)

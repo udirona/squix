@@ -10,6 +10,11 @@ import (
 	"github.com/eduardofuncao/squix/internal/parser"
 )
 
+type CellPosition struct {
+	Row int
+	Col int
+}
+
 type Model struct {
 	width             int
 	height            int
@@ -21,11 +26,12 @@ type Model struct {
 	visibleRows       int
 	columns           []string
 	columnTypes       []string
-	columnFKs         []string  // Maps column index to FK reference (e.g., "people.id")
+	columnFKs         []string // Maps column index to FK reference (e.g., "people.id")
 	data              [][]string
 	elapsed           time.Duration
 	blinkCopiedCell   bool
 	visualMode        bool
+	visualLineMode    bool
 	visualStartRow    int
 	visualStartCol    int
 	dbConnection      db.DatabaseConnection
@@ -53,6 +59,13 @@ type Model struct {
 	exportWaiting     exportWaitingFormatState
 	exportStatus      string
 	uiVisibility      config.UIVisibility
+	// Search state
+	searchMode       bool
+	searchQuery      string
+	searchMatches    []CellPosition
+	searchColMatches []int
+	searchCursor     int
+	columnSearchMode bool
 }
 
 type blinkMsg struct{}
@@ -117,25 +130,31 @@ func New(
 	}
 
 	return Model{
-		selectedRow:      0,
-		selectedCol:      0,
-		offsetX:          0,
-		offsetY:          0,
-		columns:          columns,
-		columnTypes:      columnTypes,
-		columnFKs:        columnFKs,
-		data:             data,
-		elapsed:          elapsed,
-		visualMode:       false,
-		dbConnection:     conn,
-		tableName:        tableName,
-		primaryKeyCol:    primaryKeyCol,
-		currentQuery:     query,
-		shouldRerunQuery: false,
-		editedQuery:      "",
-		cellWidth:        columnWidth,
-		isTablesList:     false,
-		uiVisibility:     visibility,
+		selectedRow:       0,
+		selectedCol:       0,
+		offsetX:           0,
+		offsetY:           0,
+		columns:           columns,
+		columnTypes:       columnTypes,
+		columnFKs:         columnFKs,
+		data:              data,
+		elapsed:           elapsed,
+		visualMode:        false,
+		dbConnection:      conn,
+		tableName:         tableName,
+		primaryKeyCol:     primaryKeyCol,
+		currentQuery:      query,
+		shouldRerunQuery:  false,
+		editedQuery:       "",
+		cellWidth:         columnWidth,
+		isTablesList:      false,
+		uiVisibility:      visibility,
+		searchMode:        false,
+		searchQuery:       "",
+		searchMatches:     []CellPosition{},
+		searchColMatches:  []int{},
+		searchCursor:      0,
+		columnSearchMode:  false,
 	}
 }
 
